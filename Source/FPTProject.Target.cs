@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class FPTProjectTarget : TargetRules
 {
-	public FPTProjectTarget(TargetInfo Target) : base(Target)
+	public FPTProjectTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V2;

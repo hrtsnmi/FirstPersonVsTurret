@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class FPTProjectEditorTarget : TargetRules
 {
-	public FPTProjectEditorTarget(TargetInfo Target) : base(Target)
+	public FPTProjectEditorTarget( TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
