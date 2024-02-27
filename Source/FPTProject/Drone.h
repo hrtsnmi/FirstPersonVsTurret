@@ -11,11 +11,18 @@
 class UInputComponent;
 class UCameraComponent;
 class UBoxComponent;
+class UFloatingPawnMovement;
+class AFPTProjectProjectile;
 
 UCLASS()
 class FPTPROJECT_API ADrone : public APawn
 {
 	GENERATED_BODY()
+
+private:
+	void DrawProjectilePath();
+	void RemoveProjectilePath();
+	void SpawnProjectile(float speed);
 
 public:
 	// Sets default values for this pawn's properties
@@ -27,7 +34,11 @@ public:
 		UCameraComponent* FirstPersonCameraComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision", meta = (AllowPrivateAccess = "true"))
-		UBoxComponent* BoxComponent;
+		UBoxComponent* BoxComp;
+
+	/** First person camera */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		UFloatingPawnMovement* FloatingPawnMovement;
 
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -44,6 +55,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 		class UInputAction* MoveAction;
 
+	/** Fire Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+		class UInputAction* FireAction;
+
+	/** Fire Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
+		TSubclassOf<AFPTProjectProjectile> fptProjectile;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -59,6 +78,9 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/** Called for fire input */
+	void Fire(const FInputActionValue& Value);
 
 public:	
 	// Called every frame
