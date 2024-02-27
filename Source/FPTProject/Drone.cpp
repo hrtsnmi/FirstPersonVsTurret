@@ -143,6 +143,16 @@ void ADrone::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
+
+	if (OnUpdateHPDelegate.IsBound())
+	{
+		OnUpdateHPDelegate.Execute(CurrentHP, MaxHP);
+	}
+
+	if (OnUpdateMagazineAmountDelegate.IsBound())
+	{
+		OnUpdateMagazineAmountDelegate.Execute(CurrentMagazine);
+	}
 }
 
 void ADrone::MoveVertical(const FInputActionValue& Value)
@@ -188,7 +198,7 @@ void ADrone::Fire(const FInputActionValue& Value)
 		RemoveProjectilePath();
 
 		//Fire
-		SpawnProjectile(StartSpeed);
+		AddMagasine(-1);
 	}
 }
 
@@ -199,6 +209,49 @@ void ADrone::Tick(float DeltaTime)
 
 
 	//DrawDebugSphere(GetWorld(), ProjectileSpawnLocation->GetComponentLocation(), 10.f, 10, FColor::Orange);
+}
+
+void ADrone::AddMagasine(int value)
+{
+	int tmp = (int)CurrentMagazine + value;
+
+	if (tmp < 0)
+	{
+		return;
+	}
+
+	if (value < 0.f)
+	{
+		SpawnProjectile(StartSpeed);
+	}
+	CurrentMagazine = std::move((uint32)tmp);
+
+
+	if (OnUpdateMagazineAmountDelegate.IsBound())
+	{
+		OnUpdateMagazineAmountDelegate.Execute(CurrentMagazine);
+	}
+}
+
+void ADrone::AddHP(float value)
+{
+	float tmp = CurrentHP + value;
+
+	if (tmp <= 0.f)
+	{
+		//Drone is dead
+
+	}
+
+	if(tmp <= MaxHP)
+	{
+		CurrentHP = std::move(tmp);
+	}
+
+	if (OnUpdateHPDelegate.IsBound())
+	{
+		OnUpdateHPDelegate.Execute(CurrentHP, MaxHP);
+	}
 }
 
 // Called to bind functionality to input

@@ -13,6 +13,10 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAddSplineMeshAtIndexSignature, int32, index);
 
+//ui
+DECLARE_DELEGATE_TwoParams(OnUpdateHPSignature, float, float);
+DECLARE_DELEGATE_OneParam(OnUpdateMagazineAmountSignature, uint32);
+
 class UInputComponent;
 class UCameraComponent;
 class UBoxComponent;
@@ -124,4 +128,20 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+
+private:
+	static constexpr float MaxHP{ 100.f };
+
+	float CurrentHP{ MaxHP };
+
+	uint32 CurrentMagazine{ 20 };
+
+	void AddMagasine(int value);
+
+	void AddHP(float value);
+
+public:
+	OnUpdateHPSignature OnUpdateHPDelegate;
+	OnUpdateMagazineAmountSignature OnUpdateMagazineAmountDelegate;
+	
 };
