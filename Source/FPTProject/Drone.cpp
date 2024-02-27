@@ -198,7 +198,7 @@ void ADrone::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 
-	DrawDebugSphere(GetWorld(), ProjectileSpawnLocation->GetComponentLocation(), 10.f, 10, FColor::Orange);
+	//DrawDebugSphere(GetWorld(), ProjectileSpawnLocation->GetComponentLocation(), 10.f, 10, FColor::Orange);
 }
 
 // Called to bind functionality to input
