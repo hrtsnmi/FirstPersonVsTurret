@@ -123,6 +123,9 @@ protected:
 	/** Called for fire input */
 	void Fire(const FInputActionValue& Value);
 
+	UFUNCTION()
+		void BoxComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -132,7 +135,7 @@ public:
 private:
 	static constexpr float MaxHP{ 100.f };
 
-	float CurrentHP{ MaxHP };
+	float CurrentHP{ 51.86f };
 
 	uint32 CurrentMagazine{ 20 };
 

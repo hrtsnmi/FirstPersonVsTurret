@@ -13,6 +13,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
+#include "Interfaces/UIInterface.h"
+
 
 
 void ADrone::DrawProjectilePath()
@@ -153,6 +155,8 @@ void ADrone::BeginPlay()
 	{
 		OnUpdateMagazineAmountDelegate.Execute(CurrentMagazine);
 	}
+
+	BoxComp->OnComponentBeginOverlap.AddDynamic(this, &ADrone::BoxComponentBeginOverlap);
 }
 
 void ADrone::MoveVertical(const FInputActionValue& Value)
@@ -199,6 +203,33 @@ void ADrone::Fire(const FInputActionValue& Value)
 
 		//Fire
 		AddMagasine(-1);
+	}
+}
+
+void ADrone::BoxComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
+	{
+		if (!OtherActor->GetClass()->ImplementsInterface(UUIInterface::StaticClass()))
+		{
+			return;
+		}
+
+
+		switch (IUIInterface::Execute_GetItemID(OtherActor))
+		{
+		case 0: //Add HP
+			AddHP(IUIInterface::Execute_GetItemValue(OtherActor));
+			break;
+		case 1: //Add Magazine
+			AddMagasine(IUIInterface::Execute_GetItemValue(OtherActor));
+			break;
+		default:
+			AddHP(IUIInterface::Execute_GetItemValue(OtherActor));
+			break;
+		}
+
+		OtherActor->Destroy();
 	}
 }
 
@@ -268,7 +299,7 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADrone::Look);
 
-		//Looking
+		//Fire
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ADrone::Fire);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ADrone::Fire);
 	}
