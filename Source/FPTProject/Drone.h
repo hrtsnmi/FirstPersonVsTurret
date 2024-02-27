@@ -5,8 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "InputActionValue.h"
+#include "Kismet/GameplayStaticsTypes.h"
+#include "Components/SplineMeshComponent.h"
+
 #include "Drone.generated.h"
 
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAddSplineMeshAtIndexSignature, int32, index);
 
 class UInputComponent;
 class UCameraComponent;
@@ -14,6 +19,10 @@ class UBoxComponent;
 class UFloatingPawnMovement;
 class AFPTProjectProjectile;
 class UStaticMeshComponent;
+class USplineComponent;
+
+void ClearSpline(TArray<USplineMeshComponent*>& SplineMeshes, USplineComponent* Spline);
+
 
 UCLASS()
 class FPTPROJECT_API ADrone : public APawn
@@ -23,7 +32,7 @@ class FPTPROJECT_API ADrone : public APawn
 private:
 	void DrawProjectilePath();
 	void RemoveProjectilePath();
-	void SpawnProjectile(float speed);
+	AFPTProjectProjectile* SpawnProjectile(float speed);
 
 public:
 	// Sets default values for this pawn's properties
@@ -63,9 +72,33 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 		class UInputAction* FireAction;
 
-	/** Fire Input Action */
+private:
+	/** Projectile */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
 		TSubclassOf<AFPTProjectProjectile> fptProjectile;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile", meta = (AllowPrivateAccess = "true"))
+		class USceneComponent* ProjectileSpawnLocation;
+
+	UPROPERTY() FTransform ThownTransform;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Meta = (ExposeOnSpawn = true), meta = (AllowPrivateAccess = "true"), Category = "Projectile|Speed")
+		float StartSpeed{ 1000.f };
+
+	UPROPERTY(BlueprintAssignable)
+		FAddSplineMeshAtIndexSignature OnAddSplineMeshAtIndex;
+
+	UPROPERTY(VisibleAnywhere, Category = "Projectile|Info")
+		FPredictProjectilePathParams PredictParams;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Projectile|Info", meta = (AllowPrivateAccess = "true"))
+		TArray<USplineMeshComponent*> SplineMeshes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile|Info", meta = (AllowPrivateAccess = "true"))
+		UStaticMeshComponent* EndSpline;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile|Info", meta = (AllowPrivateAccess = "true"))
+		USplineComponent* ProjectileSpline;
 
 protected:
 	// Called when the game starts or when spawned
