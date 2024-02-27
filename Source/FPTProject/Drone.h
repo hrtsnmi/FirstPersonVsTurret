@@ -13,6 +13,7 @@ class UCameraComponent;
 class UBoxComponent;
 class UFloatingPawnMovement;
 class AFPTProjectProjectile;
+class UStaticMeshComponent;
 
 UCLASS()
 class FPTPROJECT_API ADrone : public APawn
@@ -33,8 +34,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		UCameraComponent* FirstPersonCameraComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ADrone|Collision", meta = (AllowPrivateAccess = "true"))
 		UBoxComponent* BoxComp;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ADrone|StaticMeshComponent", meta = (AllowPrivateAccess = "true"))
+		UStaticMeshComponent* Body;
 
 	/** First person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
