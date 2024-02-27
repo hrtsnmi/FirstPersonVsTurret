@@ -5,7 +5,10 @@
 #include "FPTProjectProjectile.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/FloatingPawnMovement.h"
+#include "Components/SplineComponent.h"
 #include "Components/BoxComponent.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
@@ -13,14 +16,71 @@
 
 void ADrone::DrawProjectilePath()
 {
+	const FVector WhereCharacterLooks = FRotator(GetFirstPersonCameraComponent()->GetComponentRotation().Pitch, GetActorRotation().Yaw, GetActorRotation().Roll).Vector();
+
+	//DrawDebugDirectionalArrow(GetWorld(), WorldSpawnLocation, WorldSpawnLocation + WhereCharacterLooks * 500.f, 50.f, FColor::Red);// false, 5.f);
+	//DrawDebugSphere(GetWorld(), WorldSpawnLocation, 10.f, 10, FColor::Orange);
+
+	FPredictProjectilePathResult PredictResult;
+
+	ThownTransform.SetLocation(ProjectileSpawnLocation->GetComponentLocation());
+	ThownTransform.SetRotation(FRotator(GetFirstPersonCameraComponent()->GetComponentRotation().Pitch,
+		GetActorRotation().Yaw, GetActorRotation().Roll).Quaternion());
+
+
+	PredictParams.StartLocation = ProjectileSpawnLocation->GetComponentLocation();
+	PredictParams.LaunchVelocity = StartSpeed * WhereCharacterLooks + GetVelocity();
+
+	ClearSpline(SplineMeshes, ProjectileSpline);
+	SplineMeshes.Reserve(PredictResult.PathData.Num());
+
+	bool CanPredictKnifePagh = UGameplayStatics::PredictProjectilePath(GetWorld(), PredictParams, PredictResult);
+
+	if (CanPredictKnifePagh && OnAddSplineMeshAtIndex.IsBound())
+	{
+		for (int32 i = 0; i < PredictResult.PathData.Num(); ++i)
+		{
+			ProjectileSpline->AddSplinePoint(PredictResult.PathData[i].Location, ESplineCoordinateSpace::Local);
+		}
+		for (int32 i = 0; i < PredictResult.PathData.Num() - 1; ++i)
+		{
+			//ExecuteDelegate for Add mesh in Blueprint
+			OnAddSplineMeshAtIndex.Broadcast(i);
+		}
+	}
+
+	ProjectileSpline->SetSplinePointType(PredictResult.PathData.Num() - 1, ESplinePointType::CurveClamped);
+	EndSpline->SetWorldLocation(PredictResult.PathData.Last().Location);
+	EndSpline->SetVisibility(true);
 }
 
 void ADrone::RemoveProjectilePath()
 {
+	ClearSpline(SplineMeshes, ProjectileSpline);
+	EndSpline->SetVisibility(false);
+
+	//GetCameraBoom()->SocketOffset = PrevCameraData;
+	//GetCameraBoom()->TargetArmLength = PrevAimOfset;
 }
 
-void ADrone::SpawnProjectile(float speed)
+AFPTProjectProjectile* ADrone::SpawnProjectile(float speed)
 {
+	if (!fptProjectile) return nullptr;
+
+	const float CurrCharacterSpeed =
+		FVector::DotProduct(GetActorForwardVector(), GetVelocity()) < 0 ?
+		(-GetVelocity().Size()) :
+		(GetVelocity().Size());
+
+	AFPTProjectProjectile* ThownProjectile = GetWorld()->SpawnActorDeferred<AFPTProjectProjectile>
+		(fptProjectile, ThownTransform, this);
+	if (ThownProjectile)
+	{
+		ThownProjectile->AddOwnerSpeed() = CurrCharacterSpeed + speed;
+		ThownProjectile->FinishSpawning(ThownTransform);
+	}
+
+	return ThownProjectile;
 }
 
 // Sets default values
@@ -42,6 +102,27 @@ ADrone::ADrone()
 
 	// Create a FloatingPawnMovement	
 	FloatingPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Floating Pawn Movement"));
+
+	// Create a USceneComponent
+	ProjectileSpawnLocation = CreateDefaultSubobject<USceneComponent>(TEXT("Projectile Spawn Location"));
+	ProjectileSpawnLocation->SetupAttachment(FirstPersonCameraComponent);
+
+	//Predict path
+	PredictParams.bTraceWithCollision = true;
+	PredictParams.ProjectileRadius = 5.f;
+	PredictParams.bTraceWithChannel = true;
+	PredictParams.TraceChannel = ECollisionChannel::ECC_Visibility;
+	PredictParams.ActorsToIgnore = { this };
+	PredictParams.DrawDebugType = EDrawDebugTrace::None;
+
+	//ProjectilePath
+	EndSpline = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("End Spline Mesh"));;
+	EndSpline->SetupAttachment(ProjectileSpawnLocation);
+	EndSpline->SetVisibility(false);
+	EndSpline->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	ProjectileSpline = CreateDefaultSubobject<USplineComponent>(TEXT("Projectile Path Spline"));;
+	ProjectileSpline->SetupAttachment(ProjectileSpawnLocation);
 }
 
 // Called when the game starts or when spawned
@@ -67,10 +148,10 @@ void ADrone::MoveVertical(const FInputActionValue& Value)
 
 void ADrone::Move(const FInputActionValue& Value)
 {
-	const FVector2D MoveXYScale{ Value.Get<FVector>() };
+	const FVector2D MoveXYScale{ Value.Get<FVector2D>() };
 
-	const FVector Direction = GetActorForwardVector() * MoveXYScale.X +
-		GetActorRightVector() * MoveXYScale.Y;
+	const FVector Direction = GetActorForwardVector() * MoveXYScale.Y +
+		GetActorRightVector() * MoveXYScale.X;
 
 	FloatingPawnMovement->AddInputVector(Direction);
 }
@@ -101,7 +182,7 @@ void ADrone::Fire(const FInputActionValue& Value)
 		RemoveProjectilePath();
 
 		//Fire
-		SpawnProjectile(800.f);
+		SpawnProjectile(StartSpeed);
 	}
 }
 
@@ -110,6 +191,8 @@ void ADrone::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+
+	DrawDebugSphere(GetWorld(), ProjectileSpawnLocation->GetComponentLocation(), 10.f, 10, FColor::Orange);
 }
 
 // Called to bind functionality to input
@@ -127,7 +210,20 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADrone::Look);
 
 		//Looking
-		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ADrone::Fire);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ADrone::Fire);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ADrone::Fire);
 	}
+}
+
+void ClearSpline(TArray<USplineMeshComponent*>& SplineMeshes, USplineComponent* Spline)
+{
+	if (SplineMeshes.Num() > 0)
+	{
+		for (USplineMeshComponent* SplineMeshComponent : SplineMeshes)
+		{
+			SplineMeshComponent->DestroyComponent();
+		}
+		SplineMeshes.Empty();
+	}
+	Spline->ClearSplinePoints();
 }
