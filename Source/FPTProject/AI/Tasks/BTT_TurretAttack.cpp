@@ -17,7 +17,7 @@ EBTNodeResult::Type UBTT_TurretAttack::ExecuteTask(UBehaviorTreeComponent& Owner
 		if (Executer)
 		{
 			
-			Executer->DoNamberOfShots(1);
+			Executer->DoNumberOfShots(1);
 			TaskResult = EBTNodeResult::Type::Succeeded;
 
 		}

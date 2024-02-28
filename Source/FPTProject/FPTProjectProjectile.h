@@ -4,16 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interfaces/UIInterface.h"
 #include "FPTProjectProjectile.generated.h"
 
 class USphereComponent;
 class UProjectileMovementComponent;
 
 UCLASS()
-class FPTPROJECT_API AFPTProjectProjectile : public AActor
+class FPTPROJECT_API AFPTProjectProjectile : public AActor, public IUIInterface
 {
 	GENERATED_BODY()
 	
+
+
 private:	
 	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 		USphereComponent* CollisionComp;
@@ -42,4 +45,11 @@ public:
 	UFUNCTION()
 		float& AddOwnerSpeed();
 
+private:
+	int ProjectileID{2};
+	float value{ -37.77f };
+
+public:
+	int GetItemID_Implementation() const { return ProjectileID; };
+	float GetItemValue_Implementation() const { return value; };
 };

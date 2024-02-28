@@ -30,6 +30,11 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+
+private:
+	UFUNCTION()
+		void ComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
 private:
 	//for Debug Draw
 	UFUNCTION()
@@ -99,7 +104,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly) float searchRadius{ 800.0f };
 
-	void DoNamberOfShots(int value);
+	void DoNumberOfShots(int value);
 
 	void Fire_Implementation();
 

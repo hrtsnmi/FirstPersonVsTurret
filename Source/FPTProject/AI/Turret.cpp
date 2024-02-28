@@ -52,6 +52,28 @@ void ATurret::BeginPlay()
 		AddMagasine(0, CurrentMagazine, this, OnUpdateMagazineAmountDelegate);
 		AddHP(0, CurrentHP, MaxHP, this, OnUpdateHPDelegate);
 	}
+
+
+	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &ATurret::ComponentBeginOverlap);
+}
+
+void ATurret::ComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
+	{
+		if (!OtherActor->GetClass()->ImplementsInterface(UUIInterface::StaticClass()))
+		{
+			return;
+		}
+
+		if (IUIInterface::Execute_GetItemID(OtherActor) == 2)
+		{
+			AddHP(IUIInterface::Execute_GetItemValue(OtherActor),
+				CurrentHP, MaxHP, this, OnUpdateHPDelegate);
+		}
+
+		OtherActor->Destroy();
+	}
 }
 
 void ATurret::RotateTurret()
@@ -217,7 +239,7 @@ void ATurret::Tick(float DeltaTime)
 	DrawDebugElements();
 }
 
-void ATurret::DoNamberOfShots(int value)
+void ATurret::DoNumberOfShots(int value)
 {
 	if (CurrentMagazine == 0)
 	{
