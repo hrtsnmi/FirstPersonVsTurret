@@ -30,7 +30,6 @@ ATurret::ATurret()
 	WorldWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("World Widget"));
 	WorldWidget->SetupAttachment(RootComponent);
 
-	LinesStartEnds.SetNum(20);
 }
 
 // Called when the game starts or when spawned
@@ -39,9 +38,10 @@ void ATurret::BeginPlay()
 	Super::BeginPlay();
 
 	//																	Turret is in range 1 to 0 for 55 -> 0 range degree
-	AnimPitch = UKismetMathLibrary::NormalizeToRange(boardAngleRad, 0.0f, 55.f * PI / 180.f);
-	AnimPitch = 1.0f - AnimPitch;
+	//AnimPitch = UKismetMathLibrary::NormalizeToRange(boardAngleRad, 0.0f, 55.f * PI / 180.f);
+	//AnimPitch = 1.0f - AnimPitch;
 
+	AnimPitch = 0.75f;
 
 	if(TurretHUD)
 	{
@@ -209,14 +209,14 @@ void ATurret::DrawDebugElements() const
 	DrawDebugSphere(ThisWorld, PointToShootCenter, 10.f, 26, FColor::Red, true, -1.f, 10U, 0.0f);
 }
 
-void ATurret::SetNewAnimPitch(bool ToTarget)
+void ATurret::SetNewAnimPitch(FVector Location)
 {
-	float step{ 0.01f };
+	//FVector DistanceToTarget = Location - GetActorLocation();
+	//DistanceToTarget.Normalize();
 
-	if (ToTarget)
-		step *= -1.f;
+	
 
-	AnimPitch = FMath::Clamp(AnimPitch + step, 0.18f, 1.f);
+	//AnimPitch = FMath::Clamp(AnimPitch, 0.18f, 1.f);
 }
 
 void ATurret::SetTergetTall(AActor* Target)
@@ -236,17 +236,23 @@ void ATurret::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	DrawDebugElements();
+	//DrawDebugElements();
 }
 
 void ATurret::DoNumberOfShots(int value)
 {
+	if (GetWorldTimerManager().IsTimerActive(ReloadTimer))
+	{
+		return;
+	}
+
 	if (CurrentMagazine == 0)
 	{
 		CurrentMagazine = 20;
+		GetWorldTimerManager().SetTimer(ReloadTimer, 3.0f, false);
 		return;
 	}
-	
+
 	AddMagasine(-value, CurrentMagazine, this, OnUpdateMagazineAmountDelegate);
 }
 
@@ -270,215 +276,14 @@ void ATurret::Fire_Implementation()
 
 void ATurret::Dead_Implementation()
 {
+
+	Destroy();
 }
 
 void ATurret::PrepareFutureHitPoint(AActor* Target, FVector& OutToShoot)
 {
-	//GetVelocity
-	FVector TargetVelocity = Target->GetVelocity();
-
-	FVector TargetForwardVector{};
-	if (TargetVelocity == FVector::ZeroVector)
-	{
-		TargetForwardVector = Target->GetActorForwardVector();
-	}
-	else
-	{
-		TargetForwardVector = TargetVelocity;
-		TargetForwardVector.Normalize();
-	}
-
-	//Start Target Location
-	FVector TargetStartLocation = Target->GetActorLocation();
-	//Start Projectile Spawn Location
-	FVector ProjectileSpawnLocation = ProjectileSpawnPoint->GetComponentLocation();
-
-
-	// Projectile Speed for X and Z
-	FVector2D ProjectileXZSpeed(
-		ProjectileSpeed * FVector::DotProduct(GetActorForwardVector(), ProjectileSpawnPoint->GetForwardVector()),
-		ProjectileSpeed * FVector::DotProduct(GetActorUpVector(), ProjectileSpawnPoint->GetForwardVector()));
-
-	float Speed = ProjectileXZSpeed.Size();
-
-	//Get Current Distance to Target
-	FVector DistanceToTarget = TargetStartLocation - GetActorLocation();
-
-	//Get Distance From Root Actor To Projectile Spawn Location
-	float Radius = (ProjectileSpawnLocation - GetActorLocation()).Size();
-
-	//Get Target Speed
-	float TargetSpeed = TargetVelocity.Size();
-
-	////Get Target Normal To Actor
-	FVector TargetNormal;
-	{
-		FVector DistanceToTargetNormalize = DistanceToTarget;
-		DistanceToTargetNormalize.Normalize();
-
-		TargetNormal = FVector::CrossProduct(
-			FVector::CrossProduct(TargetForwardVector, DistanceToTargetNormalize),
-			TargetForwardVector);
-
-		if (FVector::DotProduct(TargetNormal, DistanceToTarget) > 0.0f)
-		{
-			TargetNormal = -TargetNormal;
-		}
-		TargetNormal.Normalize();
-	}
-
-	//Get h - distance to  Target Forvard Vector
-	FVector h = FVector::DotProduct(TargetNormal, DistanceToTarget) * TargetNormal;
-
-	//Get deltaDistance - Distance between TargetStartLocation and end of h
-	FVector DeltaDistance = FVector::DotProduct(TargetForwardVector, DistanceToTarget) * TargetForwardVector;
-	float DeltaDistanceMagnitude = (FVector::DotProduct(TargetForwardVector, DeltaDistance) < 0.0f) ? (-DeltaDistance.Size()) : (DeltaDistance.Size());
-
-	//with radius
-	float RadiusProjectionX{ static_cast<float>
-		(FVector::DotProduct(ProjectileSpawnPoint->GetForwardVector(), GetActorForwardVector() * Radius)) };
-
-	float a = (ProjectileXZSpeed.X - TargetSpeed) * (ProjectileXZSpeed.X + TargetSpeed);
-	float b = 2.0f * (ProjectileXZSpeed.X * RadiusProjectionX - DeltaDistanceMagnitude * TargetSpeed);
-	float c = RadiusProjectionX * RadiusProjectionX - DeltaDistanceMagnitude * DeltaDistanceMagnitude - h.Size() * h.Size();
-
-	//Get ballisticTime from /ax^2 + bx + c = 0
-	float ballisticTime{ CalcQuadraticEquation(a, b, c) };
-
-	//Get distanceToHit = Speed * Time
-	float distanceToHit = TargetSpeed * ballisticTime;
-
-	//Get Point of Hit!
-	FVector HitPoint = TargetForwardVector * distanceToHit + TargetStartLocation;
-
-	{
-		//Get BorderTime Depends of Time in Flying
-		float  ProjectilePointHeight = ProjectileSpawnLocation.Z;
-		float  TargetHeight = HitPoint.Z;
-
-		//Get Terget Tall
-		SetTergetTall(Target);
-		float ProjectileHalfTall = ProjectileScale * ProjectileCapsuleRadius;
-
-		float TimeWhenProjectileIsOnFly{ };
-
-		a = 0.5f * GetWorld()->GetGravityZ();
-		b = ProjectileXZSpeed.Y;
-		c = ProjectilePointHeight - TargetHeight;// +ProjectileHalfTall;// +ProjectileHalfTall - TargetHalfTall;
-
-		TimeWhenProjectileIsOnFly = CalcQuadraticEquation(a, b, c);
-		//TimeWhenProjectileIsOnFly *= 1.1f;
-		RangeRadius = TimeWhenProjectileIsOnFly * ProjectileXZSpeed.X;
-
-		bool TargetIsNotInRange = (ballisticTime > TimeWhenProjectileIsOnFly);// || (FMath::IsNearlyEqual(ballisticTime, TimeWhenProjectileIsOnFly, 0.1f));
-
-		//check if Character height is in range of parabolic trajectory
-		float t1{}, t2{};
-		c = ProjectilePointHeight - TargetHeight - ProjectileHalfTall - TargetHalfTall;
-		CalcQuadraticEquation(a, b, c, t1, t2);
-		//Projectile Spawn Point
-
-		NotRangeRadius1 = t1 * ProjectileXZSpeed.X;
-		NotRangeRadius2 = t2 * ProjectileXZSpeed.X;
-
-		bool leftBorder = (ballisticTime < t2); //|| (FMath::IsNearlyEqual(ballisticTime, t2, 0.01f));
-		bool rightBorder = (ballisticTime > t1);// || (FMath::IsNearlyEqual(ballisticTime, t1, 0.01f));
-
-		if (TargetIsNotInRange)
-		{
-			SetNewAnimPitch(true);
-
-			/*if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(2, 5.0f, FColor::Yellow,
-					FString::Printf(TEXT("target is in air %f, but need %f"),
-						TimeWhenProjectileIsOnFly, ballisticTime));
-			}*/
-			return;
-		}
-		else if (leftBorder && rightBorder) //check if Character height is in range of parabolic trajectory
-		{
-			SetNewAnimPitch();
-
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(2, 5.0f, FColor::Yellow,
-					FString::Printf(TEXT("ballisticTime in Range Where Pawn height is not on parabola Trajectory")));
-			}
-			return;
-		}
-		else if ((t1 == 0.0) && (t1 == 0.0))
-		{
-			AnimPitch = 0.9f;
-			//return;
-		}
-
-
-	}
-
-	OutToShoot = HitPoint;
-
-	/////////////////////////////////////////////////////////////////////////////////////////////////
-
-	int index = 0;
-	//Points for drawing Debug Elements
-	//deltaDistance
-	LinesStartEnds[index++] = (-DeltaDistance + TargetStartLocation);
-	LinesStartEnds[index++] = (TargetStartLocation);
-
-	// TargerNormal
-	LinesStartEnds[index++] = (TargetStartLocation);
-	LinesStartEnds[index++] = (TargetStartLocation + TargetNormal * 50.f);
-
-	// TargetForwardVector
-	LinesStartEnds[index++] = (TargetStartLocation);
-	LinesStartEnds[index++] = (TargetStartLocation + TargetForwardVector * 50.f);
-
-	//To Hit
-	{
-		FVector ToHitPointNorm = OutToShoot - ProjectileSpawnLocation;
-		ToHitPointNorm.Normalize();
-
-		LinesStartEnds[index++] = (ProjectileSpawnLocation);
-		LinesStartEnds[index++] = (ProjectileSpawnLocation + ProjectileSpawnPoint->GetForwardVector() * 50.f);
-	}
-
-
-
-	// Points of:
-
-	//Hit Point
-	PointToShootCenter = OutToShoot;
-
-
-	// Lines:
-	// 
-	//Forward Infinite Line
-	LinesStartEnds[index++] = (TargetStartLocation + TargetForwardVector * 10000.f);
-	LinesStartEnds[index++] = (TargetStartLocation - TargetForwardVector * 10000.f);
-
-	////Distance
-	LinesStartEnds[index++] = (GetActorLocation());
-	LinesStartEnds[index++] = (GetActorLocation() + DistanceToTarget);
-
-	////h
-	LinesStartEnds[index++] = (GetActorLocation());
-	LinesStartEnds[index++] = (GetActorLocation() + h);
-
-	////TARGET tO hIT dISTANCE
-	LinesStartEnds[index++] = (TargetStartLocation);
-	LinesStartEnds[index++] = (OutToShoot);
-
-	////Projectile tO hIT dISTANCE
-	FVector FromCenterToTarhet = OutToShoot - GetActorLocation();
-	FromCenterToTarhet.Normalize();
-
-	LinesStartEnds[index++] = (GetActorLocation() + FromCenterToTarhet * RadiusProjectionX);
-	LinesStartEnds[index++] = (OutToShoot);
-
-	////Radius
-	LinesStartEnds[index++] = (GetActorLocation());
-	LinesStartEnds[index++] = (GetActorLocation() + FromCenterToTarhet * RadiusProjectionX);
+	OutToShoot = Target->GetActorLocation();
+	
 }
 
 float CalcQuadraticEquation(float a, float b, float c)

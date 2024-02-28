@@ -40,7 +40,7 @@ private:
 	UFUNCTION()
 		void DrawDebugElements() const;
 
-	void SetNewAnimPitch(bool ToTarget = false);
+	void SetNewAnimPitch(FVector Location);
 
 	void SetTergetTall(AActor* Target);
 	//lines
@@ -78,6 +78,8 @@ private:
 	float CurrentHP{ MaxHP };
 
 	uint32 CurrentMagazine{ 20 };
+
+	FTimerHandle ReloadTimer;
 	
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Speed", meta = (AllowPrivateAccess = "true"))
