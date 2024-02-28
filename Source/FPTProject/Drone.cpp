@@ -285,6 +285,13 @@ void ADrone::AddHP(float value)
 	}
 }
 
+float ADrone::GetTargetHalfTall_Implementation()
+{
+	FVector BoxExtent = BoxComp->GetScaledBoxExtent();
+
+	return BoxExtent.Z * 0.5f;
+}
+
 // Called to bind functionality to input
 void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {

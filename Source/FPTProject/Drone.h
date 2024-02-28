@@ -146,5 +146,8 @@ private:
 public:
 	OnUpdateHPSignature OnUpdateHPDelegate;
 	OnUpdateMagazineAmountSignature OnUpdateMagazineAmountDelegate;
+
+
+	float GetTargetHalfTall_Implementation();
 	
 };
