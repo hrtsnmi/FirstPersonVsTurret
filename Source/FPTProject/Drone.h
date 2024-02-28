@@ -7,15 +7,14 @@
 #include "InputActionValue.h"
 #include "Kismet/GameplayStaticsTypes.h"
 #include "Components/SplineMeshComponent.h"
+#include "UIDelegates.h"
+#include "Interfaces/FireInterface.h"
 
 #include "Drone.generated.h"
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FAddSplineMeshAtIndexSignature, int32, index);
 
-//ui
-DECLARE_DELEGATE_TwoParams(OnUpdateHPSignature, float, float);
-DECLARE_DELEGATE_OneParam(OnUpdateMagazineAmountSignature, uint32);
 
 class UInputComponent;
 class UCameraComponent;
@@ -29,7 +28,7 @@ void ClearSpline(TArray<USplineMeshComponent*>& SplineMeshes, USplineComponent* 
 
 
 UCLASS()
-class FPTPROJECT_API ADrone : public APawn
+class FPTPROJECT_API ADrone : public APawn, public IFireInterface
 {
 	GENERATED_BODY()
 
@@ -121,7 +120,7 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 	/** Called for fire input */
-	void Fire(const FInputActionValue& Value);
+	void OnFireCommandCalled(const FInputActionValue& Value);
 
 	UFUNCTION()
 		void BoxComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -139,9 +138,6 @@ private:
 
 	uint32 CurrentMagazine{ 20 };
 
-	void AddMagasine(int value);
-
-	void AddHP(float value);
 
 public:
 	OnUpdateHPSignature OnUpdateHPDelegate;
@@ -150,4 +146,7 @@ public:
 
 	float GetTargetHalfTall_Implementation();
 	
+
+	void Fire_Implementation();
+	void Dead_Implementation();
 };

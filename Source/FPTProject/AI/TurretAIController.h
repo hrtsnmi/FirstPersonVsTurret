@@ -13,6 +13,7 @@ class UBehaviorTree;
 class UBehaviorTreeComponent;
 class UBlackboardComponent;
 class UAIPerceptionComponent;
+class UMyUserWidget;
 
 UCLASS()
 class FPTPROJECT_API ATurretAIController : public AAIController
@@ -33,7 +34,12 @@ private:
 		TObjectPtr<UAIPerceptionComponent> AIPerceptionComponent;
 
 private:
-	UPROPERTY() FTimerHandle EnemyTimer;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Widget", meta = (AllowPrivateAccess = "true"))
+		UMyUserWidget* CurrentWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Widget", meta = (AllowPrivateAccess = "true"))
+		TSubclassOf<UMyUserWidget> TurretHUD;
 
 public:
 	UPROPERTY(EditDefaultsOnly, Category = "Enemy Data")

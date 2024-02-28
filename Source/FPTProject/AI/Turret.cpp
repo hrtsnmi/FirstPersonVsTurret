@@ -10,6 +10,10 @@
 #include "Components/CapsuleComponent.h"
 #include "../Interfaces/TargetInterface.h"
 
+#include "Components/WidgetComponent.h"
+#include "../UI/MyUserWidget.h"
+
+
 // Sets default values
 ATurret::ATurret()
 {
@@ -23,6 +27,9 @@ ATurret::ATurret()
 	ProjectileSpawnPoint = CreateDefaultSubobject<USceneComponent>(TEXT("Projectile Spawn Point"));
 	ProjectileSpawnPoint->SetupAttachment(GetMesh(), FName("gun_jntSocket"));
 
+	WorldWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("World Widget"));
+	WorldWidget->SetupAttachment(RootComponent);
+
 	LinesStartEnds.SetNum(20);
 }
 
@@ -34,6 +41,17 @@ void ATurret::BeginPlay()
 	//																	Turret is in range 1 to 0 for 55 -> 0 range degree
 	AnimPitch = UKismetMathLibrary::NormalizeToRange(boardAngleRad, 0.0f, 55.f * PI / 180.f);
 	AnimPitch = 1.0f - AnimPitch;
+
+
+	if(TurretHUD)
+	{
+		CurrentWidget = CreateWidget<UMyUserWidget>(GetWorld(), TurretHUD);
+		WorldWidget->SetWidget(CurrentWidget);
+		CurrentWidget->SetUpPawnDelegates(this);
+
+		AddMagasine(0, CurrentMagazine, this, OnUpdateMagazineAmountDelegate);
+		AddHP(0, CurrentHP, MaxHP, this, OnUpdateHPDelegate);
+	}
 }
 
 void ATurret::RotateTurret()
@@ -199,7 +217,18 @@ void ATurret::Tick(float DeltaTime)
 	DrawDebugElements();
 }
 
-void ATurret::Fire()
+void ATurret::DoNamberOfShots(int value)
+{
+	if (CurrentMagazine == 0)
+	{
+		CurrentMagazine = 20;
+		return;
+	}
+	
+	AddMagasine(-value, CurrentMagazine, this, OnUpdateMagazineAmountDelegate);
+}
+
+void ATurret::Fire_Implementation()
 {
 	FTransform ProjectileTransform;
 	ProjectileTransform.SetLocation(ProjectileSpawnPoint->GetComponentLocation());
@@ -217,6 +246,9 @@ void ATurret::Fire()
 	}
 }
 
+void ATurret::Dead_Implementation()
+{
+}
 
 void ATurret::PrepareFutureHitPoint(AActor* Target, FVector& OutToShoot)
 {

@@ -17,6 +17,7 @@
 
 
 
+
 void ADrone::DrawProjectilePath()
 {
 	const FVector WhereCharacterLooks = FRotator(GetFirstPersonCameraComponent()->GetComponentRotation().Pitch, GetActorRotation().Yaw, GetActorRotation().Roll).Vector();
@@ -186,7 +187,7 @@ void ADrone::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(-LookAxisVector.Y);
 }
 
-void ADrone::Fire(const FInputActionValue& Value)
+void ADrone::OnFireCommandCalled(const FInputActionValue& Value)
 {
 	static bool FireStarted{};
 	FireStarted = Value.Get<bool>();
@@ -202,7 +203,7 @@ void ADrone::Fire(const FInputActionValue& Value)
 		RemoveProjectilePath();
 
 		//Fire
-		AddMagasine(-1);
+		AddMagasine(-1, CurrentMagazine, this, OnUpdateMagazineAmountDelegate);
 	}
 }
 
@@ -219,13 +220,18 @@ void ADrone::BoxComponentBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
 		switch (IUIInterface::Execute_GetItemID(OtherActor))
 		{
 		case 0: //Add HP
-			AddHP(IUIInterface::Execute_GetItemValue(OtherActor));
+			AddHP(IUIInterface::Execute_GetItemValue(OtherActor),
+				CurrentHP, MaxHP, this, OnUpdateHPDelegate);
+
 			break;
 		case 1: //Add Magazine
-			AddMagasine(IUIInterface::Execute_GetItemValue(OtherActor));
+			AddMagasine(IUIInterface::Execute_GetItemValue(OtherActor),
+				CurrentMagazine, this, OnUpdateMagazineAmountDelegate);
+			
 			break;
 		default:
-			AddHP(IUIInterface::Execute_GetItemValue(OtherActor));
+			AddHP(IUIInterface::Execute_GetItemValue(OtherActor),
+				CurrentHP, MaxHP, this, OnUpdateHPDelegate);
 			break;
 		}
 
@@ -242,54 +248,22 @@ void ADrone::Tick(float DeltaTime)
 	//DrawDebugSphere(GetWorld(), ProjectileSpawnLocation->GetComponentLocation(), 10.f, 10, FColor::Orange);
 }
 
-void ADrone::AddMagasine(int value)
-{
-	int tmp = (int)CurrentMagazine + value;
-
-	if (tmp < 0)
-	{
-		return;
-	}
-
-	if (value < 0.f)
-	{
-		SpawnProjectile(StartSpeed);
-	}
-	CurrentMagazine = std::move((uint32)tmp);
-
-
-	if (OnUpdateMagazineAmountDelegate.IsBound())
-	{
-		OnUpdateMagazineAmountDelegate.Execute(CurrentMagazine);
-	}
-}
-
-void ADrone::AddHP(float value)
-{
-	float tmp = CurrentHP + value;
-
-	if (tmp <= 0.f)
-	{
-		//Drone is dead
-
-	}
-
-	if(tmp <= MaxHP)
-	{
-		CurrentHP = std::move(tmp);
-	}
-
-	if (OnUpdateHPDelegate.IsBound())
-	{
-		OnUpdateHPDelegate.Execute(CurrentHP, MaxHP);
-	}
-}
 
 float ADrone::GetTargetHalfTall_Implementation()
 {
 	FVector BoxExtent = BoxComp->GetScaledBoxExtent();
 
 	return BoxExtent.Z * 0.5f;
+}
+
+void ADrone::Fire_Implementation()
+{
+	AFPTProjectProjectile* projectile = SpawnProjectile(StartSpeed);
+}
+
+void ADrone::Dead_Implementation()
+{
+	
 }
 
 // Called to bind functionality to input
@@ -307,8 +281,8 @@ void ADrone::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADrone::Look);
 
 		//Fire
-		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ADrone::Fire);
-		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ADrone::Fire);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ADrone::OnFireCommandCalled);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ADrone::OnFireCommandCalled);
 	}
 }
 

@@ -4,16 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+
+#include "../UIDelegates.h"
+#include "../Interfaces/FireInterface.h"
+
 #include "Turret.generated.h"
 
 
 class AFPTProjectProjectile;
-
+class UWidgetComponent;
+class UMyUserWidget;
 /**
  * 
  */
 UCLASS()
-class FPTPROJECT_API ATurret : public ACharacter
+class FPTPROJECT_API ATurret : public ACharacter, public IFireInterface
 {
 	GENERATED_BODY()
 	
@@ -44,7 +49,7 @@ private:
 	float NotRangeRadius2{};
 	float RangeRadius{};
 
-protected:
+private:
 	UPROPERTY(EditDefaultsOnly)
 		UStaticMeshComponent* Base;
 
@@ -54,6 +59,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Combat")
 		TSubclassOf<AFPTProjectProjectile> ProjectileClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Widget", meta = (AllowPrivateAccess = "true"))
+		UWidgetComponent* WorldWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Widget", meta = (AllowPrivateAccess = "true"))
+		UMyUserWidget* CurrentWidget;
+	UPROPERTY(EditDefaultsOnly, Category = "Widget", meta = (AllowPrivateAccess = "true"))
+		TSubclassOf<UMyUserWidget> TurretHUD;
+
+private:
+	static constexpr float MaxHP{ 100.f };
+
+	float CurrentHP{ MaxHP };
+
+	uint32 CurrentMagazine{ 20 };
+	
+private:
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Speed", meta = (AllowPrivateAccess = "true"))
 		float ProjectileSpeed{ 3900.f };
 
@@ -78,7 +99,11 @@ public:
 
 	UPROPERTY(EditDefaultsOnly) float searchRadius{ 800.0f };
 
-	UFUNCTION(BlueprintCallable) void Fire();
+	void DoNamberOfShots(int value);
+
+	void Fire_Implementation();
+
+	void Dead_Implementation();
 
 	//func to check if in Range
 	UFUNCTION(BlueprintCallable, meta = (DeterminesOutputType = "ObjClass"))
@@ -91,6 +116,11 @@ public:
 	void RotateTurret();
 
 	UFUNCTION() float GetAnimPitch() const { return AnimPitch; }
+
+
+	OnUpdateHPSignature OnUpdateHPDelegate;
+	OnUpdateMagazineAmountSignature OnUpdateMagazineAmountDelegate;
+
 };
 
 

@@ -3,6 +3,7 @@
 
 #include "MyUserWidget.h"
 #include "../Drone.h"
+#include "../AI/Turret.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 
@@ -23,6 +24,11 @@ void UMyUserWidget::SetUpPawnDelegates(APawn* pawn)
 		drone->OnUpdateHPDelegate.BindUObject(this, &UMyUserWidget::UpdateProggressBar);
 		drone->OnUpdateMagazineAmountDelegate.BindUObject(this, &UMyUserWidget::UpdateMagazineAmount);
 	}
+	else if (ATurret* turret = Cast<ATurret>(pawn))
+	{
+		turret->OnUpdateHPDelegate.BindUObject(this, &UMyUserWidget::UpdateProggressBar);
+		turret->OnUpdateMagazineAmountDelegate.BindUObject(this, &UMyUserWidget::UpdateMagazineAmount);
+	}
 }
 
 
@@ -32,5 +38,10 @@ void UMyUserWidget::RemovePawnBindingDelegates(APawn* pawn)
 	{
 		drone->OnUpdateHPDelegate.Unbind();
 		drone->OnUpdateMagazineAmountDelegate.Unbind();
+	}
+	else if (ATurret* turret = Cast<ATurret>(pawn))
+	{
+		turret->OnUpdateHPDelegate.Unbind();
+		turret->OnUpdateMagazineAmountDelegate.Unbind();
 	}
 }

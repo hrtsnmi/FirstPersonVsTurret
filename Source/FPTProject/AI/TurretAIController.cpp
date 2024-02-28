@@ -9,6 +9,9 @@
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 
+#include "../UI/MyUserWidget.h"
+#include "Turret.h"
+
 void ATurretAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
@@ -24,6 +27,7 @@ void ATurretAIController::BeginPlay()
 	Super::BeginPlay();
 
 	AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &ATurretAIController::PerceptionUpdated);
+
 }
 
 ATurretAIController::ATurretAIController()
