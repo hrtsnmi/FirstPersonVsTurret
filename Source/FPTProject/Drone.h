@@ -134,7 +134,7 @@ public:
 private:
 	static constexpr float MaxHP{ 100.f };
 
-	float CurrentHP{ 51.86f };
+	float CurrentHP{ 86.86f };
 
 	uint32 CurrentMagazine{ 20 };
 

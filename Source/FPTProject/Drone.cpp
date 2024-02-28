@@ -263,7 +263,15 @@ void ADrone::Fire_Implementation()
 
 void ADrone::Dead_Implementation()
 {
-	
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			//Subsystem->RemoveMappingContext(DefaultMappingContext);
+		}
+	}
+
+	Destroy();
 }
 
 // Called to bind functionality to input

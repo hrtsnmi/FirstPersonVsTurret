@@ -27,7 +27,7 @@ void AddMagasine(int value, uint32& CurrentMagazine,
 		IFireInterface::Execute_Fire(Shooter);
 		//SpawnProjectile(StartSpeed);
 	}
-	CurrentMagazine = std::move((uint32)tmp);
+	CurrentMagazine = (uint32)tmp;
 
 
 	if (OnUpdateMagazineAmountDelegate.IsBound())
@@ -51,10 +51,7 @@ void AddHP(float value, float &CurrentHP, float MaxHP,
 		IFireInterface::Execute_Dead(Shooter);
 	}
 
-	if (tmp <= MaxHP)
-	{
-		CurrentHP = std::move(tmp);
-	}
+	CurrentHP = (tmp <= MaxHP) ? (tmp) : (MaxHP);
 
 	if (OnUpdateHPDelegate.IsBound())
 	{
